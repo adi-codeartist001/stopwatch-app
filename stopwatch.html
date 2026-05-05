@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stopwatch</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0d0d14;
+    --card: #13131f;
+    --border: rgba(255,255,255,0.07);
+    --accent: #c084fc;
+    --accent2: #38bdf8;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --red: #f87171;
+    --green: #4ade80;
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    width: 100%; max-width: 480px;
+  }
+
+  .header {
+    text-align: center; margin-bottom: 2.5rem;
+  }
+  .header h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.1rem;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* CLOCK RING */
+  .clock-wrap {
+    display: flex; justify-content: center;
+    margin-bottom: 2.5rem; position: relative;
+  }
+  .ring-svg {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+  }
+  #ring-progress {
+    stroke-dasharray: 534;
+    stroke-dashoffset: 534;
+    transition: stroke-dashoffset 0.1s linear;
+    transform-origin: center;
+    transform: rotate(-90deg);
+    transform-box: fill-box;
+  }
+
+  .time-display {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(4rem, 16vw, 5.5rem);
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-align: center;
+    width: 220px; height: 220px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    position: relative; z-index: 1;
+  }
+  .ms-display {
+    font-size: 1.5rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-top: -8px;
+  }
+
+  /* BUTTONS */
+  .controls {
+    display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem;
+  }
+
+  .btn {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 12px 28px; border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card); color: var(--text);
+    cursor: pointer;
+    transition: all 0.18s;
+    min-width: 100px;
+  }
+  .btn:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-start {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0d14;
+  }
+  .btn-start:hover {
+    background: #d8b4fe;
+    border-color: #d8b4fe;
+    box-shadow: 0 0 22px rgba(192,132,252,0.4);
+  }
+  .btn-pause {
+    background: transparent;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-pause:hover {
+    background: rgba(192,132,252,0.08);
+  }
+  .btn-lap {
+    background: transparent;
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-lap:hover { background: rgba(56,189,248,0.08); }
+  .btn-lap:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .btn-reset {
+    background: transparent;
+    border-color: rgba(248,113,113,0.4);
+    color: var(--red);
+  }
+  .btn-reset:hover { background: rgba(248,113,113,0.07); }
+  .btn-reset:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* LAP TABLE */
+  .laps-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    max-height: 300px;
+    display: flex; flex-direction: column;
+  }
+  .laps-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.9rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  #lap-count {
+    font-size: 0.75rem;
+    background: rgba(192,132,252,0.12);
+    color: var(--accent);
+    padding: 2px 10px; border-radius: 999px;
+  }
+  .laps-list {
+    overflow-y: auto; flex: 1;
+  }
+  .laps-list::-webkit-scrollbar { width: 4px; }
+  .laps-list::-webkit-scrollbar-track { background: transparent; }
+  .laps-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .lap-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.75rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    animation: fadeSlide 0.2s ease;
+  }
+  .lap-row:last-child { border-bottom: none; }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .lap-num { color: var(--muted); font-size: 0.8rem; min-width: 50px; }
+  .lap-time { font-family: 'Bebas Neue', cursive; letter-spacing: 0.06em; font-size: 1rem; }
+  .lap-delta { font-size: 0.75rem; }
+  .lap-best  .lap-time { color: var(--green); }
+  .lap-worst .lap-time { color: var(--red); }
+
+  .empty-laps {
+    text-align: center; padding: 2.5rem;
+    color: var(--muted); font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header"><h1>Stopwatch</h1></div>
+
+  <div class="clock-wrap">
+    <svg class="ring-svg" width="240" height="240" viewBox="0 0 240 240">
+      <circle cx="120" cy="120" r="85" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
+      <circle id="ring-progress" cx="120" cy="120" r="85"
+        fill="none" stroke="#c084fc" stroke-width="6"
+        stroke-linecap="round"/>
+    </svg>
+    <div class="time-display">
+      <span id="display-main">00:00:00</span>
+      <span class="ms-display" id="display-ms">.000</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-reset" id="btn-reset" disabled onclick="resetTimer()">Reset</button>
+    <button class="btn btn-start" id="btn-start-pause" onclick="toggleTimer()">Start</button>
+    <button class="btn btn-lap" id="btn-lap" disabled onclick="recordLap()">Lap</button>
+  </div>
+
+  <div class="laps-section">
+    <div class="laps-header">
+      <span>Lap times</span>
+      <span id="lap-count">0 laps</span>
+    </div>
+    <div class="laps-list" id="laps-list">
+      <div class="empty-laps">No laps recorded yet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let startTime = 0;
+  let elapsed = 0;
+  let running = false;
+  let rafId = null;
+  let laps = [];
+  const RING_CIRCUM = 2 * Math.PI * 85; // ~534
+
+  const displayMain = document.getElementById('display-main');
+  const displayMs   = document.getElementById('display-ms');
+  const btnSP       = document.getElementById('btn-start-pause');
+  const btnReset    = document.getElementById('btn-reset');
+  const btnLap      = document.getElementById('btn-lap');
+  const lapsList    = document.getElementById('laps-list');
+  const lapCount    = document.getElementById('lap-count');
+  const ring        = document.getElementById('ring-progress');
+
+  function format(ms) {
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    const milli = ms % 1000;
+    return {
+      main: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`,
+      ms: `.${String(milli).padStart(3,'0')}`
+    };
+  }
+
+  function tick() {
+    elapsed = Date.now() - startTime;
+    const f = format(elapsed);
+    displayMain.textContent = f.main;
+    displayMs.textContent   = f.ms;
+    // Ring: one full rotation = 60s
+    const secs = (elapsed / 1000) % 60;
+    const offset = RING_CIRCUM - (secs / 60) * RING_CIRCUM;
+    ring.style.strokeDashoffset = offset;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function toggleTimer() {
+    if (!running) {
+      startTime = Date.now() - elapsed;
+      running = true;
+      rafId = requestAnimationFrame(tick);
+      btnSP.textContent = 'Pause';
+      btnSP.className = 'btn btn-pause';
+      btnReset.disabled = false;
+      btnLap.disabled = false;
+    } else {
+      cancelAnimationFrame(rafId);
+      running = false;
+      btnSP.textContent = 'Resume';
+      btnSP.className = 'btn btn-start';
+    }
+  }
+
+  function resetTimer() {
+    cancelAnimationFrame(rafId);
+    running = false; elapsed = 0; laps = [];
+    displayMain.textContent = '00:00:00';
+    displayMs.textContent   = '.000';
+    ring.style.strokeDashoffset = RING_CIRCUM;
+    btnSP.textContent = 'Start';
+    btnSP.className = 'btn btn-start';
+    btnReset.disabled = true;
+    btnLap.disabled = true;
+    lapsList.innerHTML = '<div class="empty-laps">No laps recorded yet.</div>';
+    lapCount.textContent = '0 laps';
+  }
+
+  function recordLap() {
+    const prevTotal = laps.reduce((a,l) => a + l.split, 0);
+    const split = elapsed - prevTotal;
+    laps.push({ total: elapsed, split });
+    renderLaps();
+  }
+
+  function renderLaps() {
+    if (!laps.length) { lapsList.innerHTML = '<div class="empty-laps">No laps recorded yet.</div>'; return; }
+    lapCount.textContent = `${laps.length} lap${laps.length !== 1 ? 's' : ''}`;
+    const splits = laps.map(l => l.split);
+    const best  = Math.min(...splits);
+    const worst = Math.max(...splits);
+
+    lapsList.innerHTML = [...laps].reverse().map((lap, ri) => {
+      const i = laps.length - 1 - ri;
+      const ft = format(lap.total);
+      const fs = format(lap.split);
+      let cls = '';
+      if (laps.length > 1) {
+        if (lap.split === best) cls = 'lap-best';
+        else if (lap.split === worst) cls = 'lap-worst';
+      }
+      const delta = i > 0 ? lap.split - laps[i-1].split : null;
+      const deltaStr = delta !== null
+        ? (delta >= 0 ? '+' : '') + format(Math.abs(delta)).main.replace('00:','') + format(Math.abs(delta)).ms
+        : '';
+      return `<div class="lap-row ${cls}">
+        <span class="lap-num">Lap ${i+1}</span>
+        <span class="lap-time">${fs.main}${fs.ms}</span>
+        <span class="lap-delta" style="color:${delta > 0 ? 'var(--red)' : delta < 0 ? 'var(--green)' : 'var(--muted)'}">${deltaStr}</span>
+      </div>`;
+    }).join('');
+  }
+</script>
+</body>
+</html>
